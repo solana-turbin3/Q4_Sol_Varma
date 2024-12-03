@@ -1,7 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Prodcify } from "../target/types/prodcify";
-import { Keypair, LAMPORTS_PER_SOL} from "@solana/web3.js";
+import { Keypair, LAMPORTS_PER_SOL, PublicKey} from "@solana/web3.js";
 import { keypairs } from "../keypairs";
 
 describe("prodcify", () => {
@@ -98,7 +98,7 @@ describe("prodcify", () => {
     console.log("Team Member Account:", teamMemberAccount);
   });
 
-  it.only("Create Task!", async () => {
+  it("Create Task!", async () => {
     const user = provider.wallet;
     const projectName = "Prodcify";
     const taskName = "Task3";
@@ -146,10 +146,10 @@ describe("prodcify", () => {
 
   it("Create Sub Task!", async () => {
     const projectName = "Prodcify";
-  const taskName = "Task2";
-  const subtaskName = "Subtask3";
+  const taskName = "Task1";
+  const subtaskName = "Subtask4";
   const points =40;
-  const reward =1; 
+  const reward =4; 
   const user = provider.wallet;
   const mainTask=true;
   const [projectPda] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -281,8 +281,8 @@ describe("prodcify", () => {
 
   it("Accept Subtask and Transfer Reward!", async () => {
     const projectName = "Prodcify";
-    const taskName = "Task2";
-    const subtaskName = "Subtask1";
+    const taskName = "Task1";
+  const subtaskName = "Subtask4";
     const user=provider.wallet;
 
     const [projectPda] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -607,7 +607,7 @@ console.log("Pot Balance After:", potBalanceAfter/LAMPORTS_PER_SOL);
   });
   
   it("Withdraw Funds", async () => {
-   
+    console.log("Releasing Earnings");
     const member=user1;
   
     const [profilePda] = anchor.web3.PublicKey.findProgramAddressSync(
@@ -633,10 +633,37 @@ console.log("Pot Balance Before:", potBalanceBefore/LAMPORTS_PER_SOL);
       }as any)
       .signers([member])
       .rpc();
-  
+
 console.log("Transaction signature for Amount Withdrwan:", tx);
 const potBalanceAfter = await provider.connection.getBalance(potPda);
 console.log("Pot Balance After:", potBalanceAfter/LAMPORTS_PER_SOL);  
-    
+console.log("Funds Recieved Successfully",await provider.connection.getBalance(member.publicKey)/LAMPORTS_PER_SOL);
   });
+
+ it("My Projects",async()=>{
+    const projects=await program.account.project.all();
+    console.log(projects.filter((project)=>project.account.owner.toBase58()===provider.wallet.publicKey.toBase58()));
+ })
+ it("My Tasks",async()=>{
+    const tasks=await program.account.task.all();
+    console.log(tasks.filter((task)=>(task.account.owner.toBase58()===provider.wallet.publicKey.toBase58()||task.account.member.toBase58()===provider.wallet.publicKey.toBase58())));
+ })
+ it.only("Profile",async()=>{
+  const who=user1;
+
+  const [profilePda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("profile"), who.publicKey.toBuffer()],
+    program.programId
+  );
+  const myProfile=await program.account.profile.fetch(profilePda);
+  console.log(myProfile);
+  const [potPda] = anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("pot"),who.publicKey.toBuffer(),profilePda.toBuffer()],
+    program.programId
+  );
+  const Earnings=await provider.connection.getBalance(potPda);
+  console.log(`${Earnings/LAMPORTS_PER_SOL}, SOL`);
+ })
+
 });
+
